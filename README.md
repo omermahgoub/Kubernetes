@@ -1,7 +1,7 @@
 # The Stuff of Kubernetes
 
 
-* [Kubernetes Fundamentals Training](https://github.com/omermahgoub/k8s/blob/master/docs/kubernetes-fundamental-training.md)
+* [Kubernetes Fundamentals](https://github.com/omermahgoub/k8s/blob/master/docs/kubernetes-fundamental-training.md)
 
     The takes you through history and evolution of Kubernetes, its high-level architecture and components.
     Step by step deployment for kubernetes deployment scenarios.
