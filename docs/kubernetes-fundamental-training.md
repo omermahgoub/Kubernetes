@@ -16,4 +16,8 @@ By the end of this training, you will learn the following:
 
 The target audience for this tutorial is someone planning to support a production Kubernetes cluster and wants to understand how kubernetes works.
 
+  [1. Basic of Kubernetes](https://github.com/omermahgoub/k8s/wiki/1.-Basics-of-Kubernetes)
+
+  [2. Install Kubernetes](https://github.com/omermahgoub/k8s/wiki/2.-Install-Kubernetes)
+
 
