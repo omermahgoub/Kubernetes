@@ -190,15 +190,15 @@ openstack flavor list
 | ea407ca0-3cdf-4b2b-acc2-6ca121f1f79c | R1-Memory-8   |  65536 |   30 |         0 |     8 | True      |
 +--------------------------------------+---------------+--------+------+-----------+-------+-----------+
 ```
-### Kubernetes Controllers
+### Kubernetes Master node
 Create three compute instances which will host the Kubernetes control plane:
 ```
-for i in 0 1 2; do
+for i in 0; do
 nova boot --block-device \
 source=image,id=$IMAGE,dest=volume,size=200,bootindex=0,shutdown=preserve \
---nic net-id=$NETWORK,v4-fixed-ip=10.240.0.1${i} \
+--nic net-id=$NETWORK,v4-fixed-ip=172.16.16.1${i} \
 --flavor R1-Generic-4 \
---key-name id_rsa_public --security-groups kthw-allow-internal,kthw-allow-external controller-${i}
+--key-name id_rsa_public --security-groups kft-allow-external master-${i}
 done
 ```
 
@@ -221,15 +221,15 @@ This instance will be using as a bastion (Jumphost) and a load balancer for kube
 
 ```
 nova boot --block-device source=image,id=$IMAGE,dest=volume,size=100,bootindex=0,shutdown=preserve \
---nic net-id=$NETWORK,v4-fixed-ip=10.240.0.200 \
+--nic net-id=$NETWORK,v4-fixed-ip=172.16.16.200 \
 --flavor R1-Generic-4 \
---key-name id_rsa_public --security-groups kthw-allow-internal,kthw-allow-external prx-1
+--key-name id_rsa_public --security-groups kthw-allow-internal,kthw-allow-external bastion-0
 ```
 
 We can now associate a floatingip with pry to access the kubenet:
 
 ```
-openstack server add floating ip prx-1 $Public_IP
+openstack server add floating ip bastion-0 $Public_IP
 ```
 
 ### Verification
@@ -237,39 +237,36 @@ openstack server add floating ip prx-1 $Public_IP
 List the compute instances in your default compute zone:
 
 ```
-openstack server list | grep -E "work|cont|prx"
+openstack server list | grep -E "work|master|bastion"
 ```
 
 > output
 ```
 | ID                                   | Name          | Status | Networks                             | Image | Flavor        |
-| 1ee2432b-8740-41f6-bc8d-f876c2550596 | prx-1         | ACTIVE | kthw-virtual-network=10.240.0.200    |       | R1-Generic-4  |
-| 199e46ad-115a-48d1-9d4b-4a2e193a8573 | worker-2      | ACTIVE | kthw-virtual-network=10.240.0.22     |       | R1-Generic-8  |
-| d391b9a3-da05-47fe-9035-342c29819c80 | worker-1      | ACTIVE | kthw-virtual-network=10.240.0.21     |       | R1-Generic-8  |
-| d99fb78b-9893-4c26-98c3-7c0cafae635e | worker-0      | ACTIVE | kthw-virtual-network=10.240.0.20     |       | R1-Generic-8  |
-| 558aeb3f-5237-4e96-9a3b-9d43edd8d0b7 | controller-2  | ACTIVE | kthw-virtual-network=10.240.0.12     |       | R1-Generic-4  |
-| 8064de88-c780-4c80-b522-e6cc0505c975 | controller-1  | ACTIVE | kthw-virtual-network=10.240.0.11     |       | R1-Generic-4  |
-| 1e4546a7-5404-4f83-8c1a-837849080dea | controller-0  | ACTIVE | kthw-virtual-network=10.240.0.10     |       | R1-Generic-4  |
+| 1ee2432b-8740-41f6-bc8d-f876c2550596 | master-0      | ACTIVE | kthw-virtual-network=172.16.16.10    |       | R1-Generic-4  |
+| 199e46ad-115a-48d1-9d4b-4a2e193a8573 | worker-0      | ACTIVE | kthw-virtual-network=172.16.16.20    |       | R1-Generic-8  |
+| d391b9a3-da05-47fe-9035-342c29819c80 | worker-1      | ACTIVE | kthw-virtual-network=172.16.16.21    |       | R1-Generic-8  |
+| d99fb78b-9893-4c26-98c3-7c0cafae635e | worker-2      | ACTIVE | kthw-virtual-network=172.16.16.22    |       | R1-Generic-8  |
 ```
 
 ## Configuring SSH Access
 
 SSH will be used to configure the controller and worker instances. We will use prx-1 as bastion host to connect to controller and worker instances.
 
-Test SSH access to the `prx-1` compute instances:
+Test SSH access to the `master-0` compute instances:
 
 ```
-ssh controller-0
+ssh master-0
 ```
 
 If this is your first time connecting to a compute instance SSH keys will be generated for you. Enter a passphrase at the prompt to continue:
 
 ```
-ssh ubuntu@95.177.214.110
-The authenticity of host '95.177.214.110 (95.177.214.110)' can't be established.
-ECDSA key fingerprint is SHA256:rT1oted6q4UDHFPerlhh0zd+XUZjAlxbU3cRompqNPs.
+ohamad@OmarBox:~/Documents/k8s/Kubernetes-fundamentals-training$ ssh ubuntu@95.177.218.66
+The authenticity of host '95.177.218.66 (95.177.218.66)' can't be established.
+ECDSA key fingerprint is SHA256:WuEp/92+oSOKKAU/yicjYXvXRpakTKop0ruhp7nwA4s.
 Are you sure you want to continue connecting (yes/no)? yes
-Warning: Permanently added '95.177.214.110' (ECDSA) to the list of known hosts.
+Warning: Permanently added '95.177.218.66' (ECDSA) to the list of known hosts.
 Welcome to Ubuntu 16.04.3 LTS (GNU/Linux 4.4.0-98-generic x86_64)
 
  * Documentation:  https://help.ubuntu.com
@@ -297,7 +294,7 @@ See "man sudo_root" for details.
 
 As all instances can only be accessed via private key, I'll upload my private key to `prx-1` to be able to access controller and worker instances from the bastion host.
 ```
-scp .ssh/id_rsa ubuntu@95.177.214.110:/home/ubuntu/.ssh/
+scp ~/.ssh/id_rsa ubuntu@95.177.218.66:/home/ubuntu/.ssh/
 ```
 
 Next: [Provisioning a CA and Generating TLS Certificates](04-certificate-authority.md)
