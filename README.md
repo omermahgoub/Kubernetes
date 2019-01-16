@@ -1,2 +1,3 @@
-# k8s
-Stuff of kubernetes
+# The Stuff of Kubernetes
+
+* [Kubernetes Fundamentals Training](k8s/docs/kubernetes-fundamental-training)
